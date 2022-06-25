@@ -46,7 +46,7 @@ public class EchoServer {
                 out.writeUTF("echo: " + message);
             }
 
-            //TODO how to stop consoleInputThread ?
+            System.out.println("PRESS ENTER TO EXIT"); //TODO how to force stop consoleInputThread ?
         } catch (IOException e) {
             e.printStackTrace();
         }
