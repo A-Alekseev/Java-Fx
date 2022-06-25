@@ -12,7 +12,6 @@ public class EchoClient {
     private static final String MESSAGE_END = "/end";
     private static final int SERVER_PORT = 9000;
 
-
     private Socket socket;
     private DataInputStream in;
     private DataOutputStream out;
@@ -28,6 +27,8 @@ public class EchoClient {
             while (true) {
                 String messageToServer = scanner.nextLine();
                 sendMessage(messageToServer);
+
+                //exit if user entered "/end"
                 if (MESSAGE_END.equalsIgnoreCase(messageToServer) )
                     break;
             }
@@ -91,5 +92,4 @@ public class EchoClient {
             e.printStackTrace();
         }
     }
-
 }
