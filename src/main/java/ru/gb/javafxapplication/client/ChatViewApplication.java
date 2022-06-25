@@ -1,4 +1,4 @@
-package ru.gb.javafxapplication;
+package ru.gb.javafxapplication.client;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -14,10 +14,16 @@ public class ChatViewApplication extends Application {
         Scene scene = new Scene(fxmlLoader.load(), 560, 320);
         stage.setTitle("Net chat");
         stage.setScene(scene);
+        stage.setOnHidden(e-> ((Controller)fxmlLoader.getController()).shutdown());
         stage.show();
     }
 
     public static void main(String[] args) {
         launch();
+    }
+
+    @Override
+    public void stop(){
+
     }
 }
