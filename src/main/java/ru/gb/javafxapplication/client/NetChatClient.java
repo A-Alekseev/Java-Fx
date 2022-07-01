@@ -1,5 +1,8 @@
 package ru.gb.javafxapplication.client;
 
+import ru.gb.javafxapplication.common.Command;
+import ru.gb.javafxapplication.common.Message;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -7,7 +10,6 @@ import java.net.Socket;
 
 public class NetChatClient {
     private static final String SERVER_ADDRESS = "192.168.1.61";
-    public static final String END_MESSAGE = "/end";
     private static final int PORT = 9000;
 
     private final Controller controller;
@@ -41,20 +43,37 @@ public class NetChatClient {
 
     private boolean waitAuth() throws IOException {
         while (true){
-            final String message = inputStream.readUTF();
-            System.out.println("received: "+ message);
-            if (END_MESSAGE.equalsIgnoreCase(message)){
-                return false;
+            final String text = inputStream.readUTF();
+            System.out.println("received: "+ text);
+
+            Message message;
+            try {
+                message = Message.fromString(text);
+            }
+            catch (RuntimeException exc){
+                exc.printStackTrace();
+                controller.addNotification("Error parsing message from server: " + exc.getMessage());
+                continue;
             }
 
-            if (message.startsWith("/authok")){
-                String[] split = message.split("\\p{Blank}+");
-                String nick = split[1];
-                controller.addMessage("Authorized successfully as " +nick);
+            if (message.isCommandEquals(Command.END)){
+                return false;
+            }
+            else if (message.isCommandEquals(Command.STOP)) {
+                controller.addNotification("Authorization timeout");
+                sendMessage(Command.END);
+                return false;
+            }
+            else if (message.isCommandEquals(Command.AUTHOK)){
+                String nick = message.getParameter(0);
+                controller.addMessage("Authorized successfully as " + nick);
                 break;
             }
+            else if (message.isCommandEquals(Command.ERROR)) {
+                controller.addMessage(message.getParameter(0));
+            }
             else {
-                controller.addMessage(message);
+                controller.addNotification("Unexpected command from server: " + message);
             }
         }
         return true;
@@ -64,6 +83,7 @@ public class NetChatClient {
         if (outputStream != null) {
             try {
                 outputStream.close();
+                outputStream = null;
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -71,6 +91,7 @@ public class NetChatClient {
         if (inputStream != null){
             try {
                 inputStream.close();
+                inputStream = null;
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -78,27 +99,68 @@ public class NetChatClient {
         if (socket != null){
             try {
                 socket.close();
+                socket = null;
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
-    private void readMessages() throws IOException{
-        while (true){
-            final String message = inputStream.readUTF();
-            if (END_MESSAGE.equalsIgnoreCase(message)) {
+    private void readMessages() throws IOException {
+        while (true) {
+            final String text = inputStream.readUTF();
+            Message message;
+
+            try {
+                message = Message.fromString(text);
+            } catch (RuntimeException exc) {
+                exc.printStackTrace();
+                controller.addNotification(exc.getMessage());
+                continue;
+            }
+
+            if (message.isCommandEquals(Command.END)) {
                 break;
             }
-            controller.addMessage(message);
+
+            String messageText = null;
+            if (message.isCommandEquals(Command.MESSAGE)) {
+                messageText = message.getParameter(0);
+            }
+            else if (message.isCommandEquals(Command.CLIENTS)){
+                controller.updateClients(message.getParameters());
+            }else {
+                messageText = "Unexpected command " + text;
+            }
+
+            if (messageText != null) {
+                controller.addMessage(messageText);
+            }
         }
     }
 
-    public void sendMessage(String userMessage) {
+    public void sendMessage(Command command, String... parameters ) {
         try {
-            outputStream.writeUTF(userMessage);
-            System.out.println("sent " + userMessage);
+            String text = new Message(command, parameters).toString();
+
+            outputStream.writeUTF(text);
+            System.out.println("sent " + text);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void authenicate(String login, String pass) {
+        if (socket == null || socket.isClosed()){
+            try {
+                openConnection();
+            }
+            catch (IOException exc)
+            {
+                exc.printStackTrace();
+                controller.addNotification(exc.getMessage());
+                return;
+            }
+        }
+        sendMessage(Command.AUTH, login, pass);
     }
 }

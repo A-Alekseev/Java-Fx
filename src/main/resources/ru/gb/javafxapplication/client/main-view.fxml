@@ -8,22 +8,45 @@
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.text.Text?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.shape.Box?>
 <VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
       fx:controller="ru.gb.javafxapplication.client.Controller">
     <padding>
         <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
     </padding>
 
-    <TextArea fx:id="historyArea" editable="false" wrapText="true" VBox.vgrow="ALWAYS"/>
-    <VBox>
-        <HBox fx:id="authBox" spacing="5">
-            <TextField fx:id="loginField" HBox.hgrow="ALWAYS"/>
-            <PasswordField fx:id="passField" HBox.hgrow="ALWAYS"/>
-            <Button text="Sign in" onAction="#clickAuthButton"/>
-        </HBox>
-        <HBox fx:id="sendBox" spacing="5" visible="false">
-            <TextField fx:id="userMessageField" HBox.hgrow="ALWAYS"/>
-            <Button text="Send" defaultButton="true" onAction="#clickSendButton"/>
-        </HBox>
-    </VBox>
+    <HBox>
+        <VBox maxWidth="200">
+            <padding>
+                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+            </padding>
+
+            <VBox>
+                <padding>
+                    <Insets bottom="20.0" left="0.0" right="0.0" top="0.0"/>
+                </padding>
+
+                <Label text="Users online:"/>
+                <ListView fx:id="clientsListView" onMouseClicked="#selectClient"/>
+            </VBox>
+            <VBox fx:id="authVBox" spacing="5">
+                <Label text="Login"/>
+                <TextField fx:id="loginField" HBox.hgrow="ALWAYS"/>
+                <Label text="Password"/>
+                <PasswordField fx:id="passField" HBox.hgrow="ALWAYS"/>
+                <Button text="Sign in" onAction="#clickAuthButton"/>
+            </VBox>
+
+        </VBox>
+        <TextArea fx:id="historyArea" editable="false" wrapText="true" VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS"/>
+    </HBox>
+    <HBox fx:id="sendBox" spacing="5" visible="false">
+        <Label text="For: "/>
+        <Label fx:id="targetUserNickLabel" text="all"/>
+        <TextField fx:id="userMessageField" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="sendButton" text="Send" defaultButton="true" onAction="#clickSendButton"/>
+    </HBox>
 </VBox>

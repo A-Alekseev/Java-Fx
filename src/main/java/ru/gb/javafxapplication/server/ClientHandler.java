@@ -1,12 +1,16 @@
 package ru.gb.javafxapplication.server;
 
+import ru.gb.javafxapplication.common.Command;
+import ru.gb.javafxapplication.common.Message;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 
 public class ClientHandler {
-    private static final String END_MESSAGE = "/end";
+
+    final int AUTH_TIMEOUT = 12000;
 
     private DataInputStream inputStream;
     private DataOutputStream outputStream;
@@ -14,13 +18,25 @@ public class ClientHandler {
     private NetChatServer server;
     private String nick;
     private AuthService authService;
+    private Thread authenticationTimeoutThread;
 
     public ClientHandler(Socket socket, NetChatServer server, AuthService authService) throws IOException {
         this.socket = socket;
         this.server = server;
+        this.authService = authService;
         inputStream = new DataInputStream(socket.getInputStream());
         outputStream = new DataOutputStream(socket.getOutputStream());
-        this.authService = authService;
+        authenticationTimeoutThread = new Thread(() -> {
+            try {
+                Thread.sleep(AUTH_TIMEOUT);
+                sendMessage(Command.STOP); // Если в другом потоке не будет вызван метод interrupt, то мы попадем сюда
+            } catch (InterruptedException e) {
+                // В другом потоке была успешная авторизация
+                System.out.println("Authenticated successfully");
+            }
+        });
+        authenticationTimeoutThread.start();
+
         new Thread(()->{
             try {
                 if (authenticate()) {
@@ -36,34 +52,36 @@ public class ClientHandler {
     private boolean authenticate() {
         while (true){
             try {
-                String message = inputStream.readUTF();
-                System.out.println("receiived: "+ message);
-                if(END_MESSAGE.equalsIgnoreCase(message))
+                String text = inputStream.readUTF();
+                System.out.println("receiived: "+ text);
+                Message message = Message.fromString(text);
+
+                if(message.isCommandEquals(Command.END))
                     return false;
 
-                final String[] splits = message.split("\\p{Blank}+");
-                if (splits.length == 3 && splits[0].equals("/auth")){
-                    String login = splits[1];
-                    String pass = splits[2];
+                if (message.isCommandEquals(Command.AUTH))
+                {
+                    String login = message.getParameter(0);
+                    String pass = message.getParameter(1);
                     String nick = authService.getNickByLoginAndPassword(login, pass);
                     if(nick != null){
                         if (server.isNickBusy(nick)){
-                            sendMessage("User had already authorized");
+                            sendMessage(Command.ERROR, "User had already authorized");
                             continue;
                         }
-                        sendMessage("/authok " + nick);
+                        authenticationTimeoutThread.interrupt();
+                        sendMessage(Command.AUTHOK, nick);
                         this.nick = nick;
-                        server.sendToClients(nick + " entered chat", null, null );
+                        server.sendTextToClients(nick + " entered chat", null, null );
                         server.subscribe(this);
                         break;
                     }
                     else {
-                        sendMessage("Incorrect login and password");
+                        sendMessage(Command.ERROR, "Incorrect login and password");
                     }
-
                 }
                 else {
-                    sendMessage("Not authenticated");
+                    sendMessage(Command.ERROR, "You are not authenticated");
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -73,7 +91,7 @@ public class ClientHandler {
     }
 
     private void closeConnection() {
-        sendMessage(END_MESSAGE);
+        sendMessage(Command.END);
         
         if (outputStream != null) {
             try {
@@ -99,9 +117,10 @@ public class ClientHandler {
         }
     }
 
-    public void sendMessage(String message) {
+
+    public void sendMessage(Command command, String... parameters) {
         try {
-            outputStream.writeUTF(message);
+            outputStream.writeUTF(new Message(command, parameters).toString());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -110,31 +129,36 @@ public class ClientHandler {
     private void readMessages() {
         while (true){
             try {
-                final String message = inputStream.readUTF();
-                if(END_MESSAGE.equalsIgnoreCase(message)){
+                final String text = inputStream.readUTF();
+                Message message;
+                try{
+                    message = Message.fromString(text);
+                }
+                catch (RuntimeException exc){
+                    System.out.println(exc.getStackTrace());
+                    sendMessage(Command.ERROR, exc.getMessage());
+                    continue;
+                }
+
+                if(message.isCommandEquals(Command.END)){
                     break;
                 }
-                else if (message.startsWith("/w"))
+                else if (message.isCommandEquals(Command.PRIVATE_MESSAGE))
                 {
-                    String[] split = message.split("\\p{Blank}+");
-                    if (split.length < 3){
-                        sendMessage("format: /w <nick> <message text>");
+                    String nick = message.getParameter(0);
+                    String messageText = message.getParameter(1);
+                    if (server.isNickBusy(nick)){
+                        server.sendTextToClients(messageText, this.nick, nick);
                     }
-                    else {
-                        String nick = split[1];
-                        if (server.isNickBusy(nick)){
-                            String pMessage = extractPersonalMessageText(message, nick);
-                            server.sendToClients(pMessage, this.nick, nick);
-                        }
-                        else
-                        {
-                            sendMessage("nick " + nick + " not connected");
-                        }
+                    else
+                    {
+                        sendMessage(Command.ERROR,"nick " + nick + " not connected");
                     }
                 }
-                else
+                else if (message.isCommandEquals(Command.MESSAGE))
                 {
-                    server.sendToClients(message, this.nick, null);
+                    String messageText = message.getParameter(0);
+                    server.sendTextToClients(messageText, this.nick, null);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -146,9 +170,5 @@ public class ClientHandler {
         return nick;
     }
 
-    static String extractPersonalMessageText(String message, String nick){
-        String textNoW = message.substring(2, message.length()).trim();
-        String textNoNick =textNoW.substring(nick.length(), textNoW.length()).trim();
-        return textNoNick;
-    }
 }
+
