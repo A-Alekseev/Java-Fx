@@ -66,7 +66,7 @@ public class NetChatClient {
             }
             else if (message.isCommandEquals(Command.AUTHOK)){
                 String nick = message.getParameter(0);
-                controller.addMessage("Authorized successfully as " + nick);
+                controller.userAthorized();
                 break;
             }
             else if (message.isCommandEquals(Command.ERROR)) {

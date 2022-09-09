@@ -9,6 +9,7 @@ import javafx.scene.layout.VBox;
 import ru.gb.javafxapplication.common.Command;
 
 import java.io.IOException;
+import java.util.List;
 
 public class Controller {
     @FXML
@@ -31,6 +32,8 @@ public class Controller {
     public TextField userMessageField;
 
     final NetChatClient client;
+
+    private String login;
 
     public Controller() {
         client = new NetChatClient(this);
@@ -73,20 +76,17 @@ public class Controller {
     }
 
     public void addMessage(String message) {
-        historyArea.appendText(message + "\n");
+        historyArea.appendText(message + "\r\n");
     }
 
     public void clickAuthButton(ActionEvent actionEvent) {
-        client.authenicate(loginField.getText(), passField.getText());
+        login = loginField.getText();
+        client.authenicate(login, passField.getText());
     }
 
     public void setAuth(boolean success){
         authVBox.setVisible(!success);
         sendBox.setVisible(success);
-    }
-
-    public void shutdown(){
-        client.sendMessage(Command.END);
     }
 
     public void addNotification(String s) {
@@ -107,4 +107,19 @@ public class Controller {
             targetUserNickLabel.setText(selectedItem);
         }
     }
+
+    public void userAthorized() {
+       String history = HistoryStorage.loadHistory(login);
+       historyArea.setText(history);
+    }
+    public void shutdown(){
+        try {
+            HistoryStorage.saveHistory(login, historyArea.getText());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        client.sendMessage(Command.END);
+    }
+
 }
