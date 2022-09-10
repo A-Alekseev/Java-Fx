@@ -12,36 +12,12 @@ public class InMemoryAuthService implements AuthService {
         }
     }
 
-    private static class User{
-         private String nick;
-         private String login;
-         private String password;
-
-        public User(String nick, String login, String password) {
-            this.nick = nick;
-            this.login = login;
-            this.password = password;
-        }
-
-        public String getNick() {
-            return nick;
-        }
-
-        public String getLogin() {
-            return login;
-        }
-
-        public boolean isPasswordCorrect(String password) {
-            return password.equals(this.password);
-        }
-    }
-
     private List<User> users;
     @Override
     public String getNickByLoginAndPassword(String login, String password) {
         for (User u:users) {
             if(login.equals(u.getLogin()) && u.isPasswordCorrect(password)){
-                return u.nick;
+                return u.getNick();
             }
         }
         return null;
@@ -52,3 +28,4 @@ public class InMemoryAuthService implements AuthService {
         System.out.println("Authentication service is closed");
     }
 }
+

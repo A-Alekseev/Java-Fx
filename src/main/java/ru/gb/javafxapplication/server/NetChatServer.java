@@ -5,9 +5,9 @@ import ru.gb.javafxapplication.common.Command;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class NetChatServer {
     private static final int PORT = 9000;
@@ -18,9 +18,13 @@ public class NetChatServer {
         clients = new ArrayList<ClientHandler>();
     }
 
-    public void start() {
+    public void start() throws SQLException {
         try (ServerSocket serverSocket = new ServerSocket(PORT);
-             AuthService authService = new InMemoryAuthService()){
+        //     AuthService authService = new InMemoryAuthService()
+             AuthService authService = new SqliteDatabaseAuthService()
+        )
+        {
+
             while (true){
                 System.out.println("Waiting connection");
                 Socket socket = serverSocket.accept();
