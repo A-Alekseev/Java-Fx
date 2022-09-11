@@ -51,7 +51,7 @@ public class NetChatServer {
         broadcastClientsList();
     }
 
-    private void broadcastClientsList() {
+    public void broadcastClientsList() {
         String[] nicks = clients.stream()
                 .map(ClientHandler::getNick)
                 .toArray(String[]::new);

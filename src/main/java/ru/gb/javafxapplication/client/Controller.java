@@ -10,6 +10,7 @@ import ru.gb.javafxapplication.common.Command;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class Controller {
     @FXML
@@ -111,6 +112,7 @@ public class Controller {
     public void userAthorized() {
        String history = HistoryStorage.loadHistory(login);
        historyArea.setText(history);
+        historyArea.setText("\r\n");
     }
     public void shutdown(){
         try {
@@ -122,4 +124,15 @@ public class Controller {
         client.sendMessage(Command.END);
     }
 
+    public void clickChangeNick(ActionEvent actionEvent) {
+        TextInputDialog dialog = new TextInputDialog("");
+        dialog.setTitle("Change nick");
+        dialog.setHeaderText("Enter your new nick");
+        dialog.setContentText("Nick:");
+
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(nick -> {
+            client.sendMessage(Command.CHANGE_NICK, nick);
+        });
+    }
 }

@@ -49,4 +49,15 @@ public abstract class DatabaseAuthService implements AuthService {
         }
         return null;
     }
+
+    @Override
+    public  boolean changeNick(String login, String newNick) {
+        try(Statement statement = getConnection().createStatement()) {
+            String query = "UPDATE users SET nick = '" + newNick + "'WHERE login = '" + login + "'";
+            return statement.executeUpdate(query) > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }

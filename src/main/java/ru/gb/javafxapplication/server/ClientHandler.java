@@ -17,6 +17,7 @@ public class ClientHandler {
     private Socket socket;
     private NetChatServer server;
     private String nick;
+    private String login;
     private AuthService authService;
     private Thread authenticationTimeoutThread;
 
@@ -72,6 +73,7 @@ public class ClientHandler {
                         authenticationTimeoutThread.interrupt();
                         sendMessage(Command.AUTHOK, nick);
                         this.nick = nick;
+                        this.login = login;
                         server.sendTextToClients(nick + " entered chat", null, null );
                         server.subscribe(this);
                         break;
@@ -159,6 +161,12 @@ public class ClientHandler {
                 {
                     String messageText = message.getParameter(0);
                     server.sendTextToClients(messageText, this.nick, null);
+                }
+                else if (message.isCommandEquals(Command.CHANGE_NICK)){
+                    String newNick = message.getParameter(0);
+                    authService.changeNick(this.login, newNick);
+                    nick = newNick;
+                    server.broadcastClientsList();
                 }
             } catch (IOException e) {
                 e.printStackTrace();

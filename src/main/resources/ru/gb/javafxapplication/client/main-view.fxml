@@ -44,6 +44,7 @@
         <TextArea fx:id="historyArea" editable="false" wrapText="true" VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS"/>
     </HBox>
     <HBox fx:id="sendBox" spacing="5" visible="false">
+        <Button fx:id="nickChangeButton" text="Change nick" onAction="#clickChangeNick"/>
         <Label text="For: "/>
         <Label fx:id="targetUserNickLabel" text="all"/>
         <TextField fx:id="userMessageField" HBox.hgrow="ALWAYS"/>
