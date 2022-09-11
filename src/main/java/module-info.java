@@ -1,8 +1,8 @@
 module ru.gb.javafxapplication {
     requires javafx.controls;
     requires javafx.fxml;
+    requires java.sql;
 
-
-    opens ru.gb.javafxapplication to javafx.fxml;
-    exports ru.gb.javafxapplication;
+    exports ru.gb.javafxapplication.client;
+    opens ru.gb.javafxapplication.client to javafx.fxml;
 }
